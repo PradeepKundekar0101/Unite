@@ -1,65 +1,63 @@
 import { Request, Response } from "express";
 import client from "@repo/db/client"
 import jwt from 'jsonwebtoken'
+import { SignInSchema, SignUpSchema } from "../types";
+import {hash,compare} from '../utils/bcrypt'
 const JWT_SECRET = process.env.JWT_SECRET
+
 export const createAccount = async (req:Request,res:Response)=>{
-    const {username,password,type}:{
-        username:string,
-        password:string,
-        type: string
-    } = req.body
-    if(!username || !password || !type){
-        res.status(400).send({message:"All fields required"})
+    const parsedData = SignUpSchema.safeParse(req.body)
+    if(!parsedData.success){
+        res.status(400).json({
+            message:"Invalid inputs"
+        })
         return
     }
-    if(type!=="Admin" &&  type!=="User"){
-        res.status(400).send({message:"Invalid type"})
-        return 
+    try {
+        const hashedPassword = await hash(parsedData.data.password)
+        const createUser = await client.user.create({data:{
+            username:parsedData.data.username,
+            password:hashedPassword,
+            role: parsedData.data.type
+        }})
+        res.status(200).json({userId:createUser.id})
+    } catch (error) {
+        res.status(400).json({message:"User name already taken"})
+    }
 
-    }
-    const existingUser = await client.user.findFirst({
-        where:{
-            username
-        }
-    })
-    if(existingUser){
-        res.status(400).send({message:"User name already taken"})
-        return 
-    }
-    const createUser = await client.user.create({data:{
-        username,
-        password,
-        role:type
-    }})
-    res.status(200).send({userId:createUser.id})
 }
 export const signIn = async (req: Request, res: Response) => {
-    const { username, password }: { username: string, password: string } = req.body;
-    if (!username || !password) {
-        res.status(400).send({ message: "Username and password are required" });
-        return;
+    const parsedData = SignInSchema.safeParse(req.body)
+    if(!parsedData.success){
+        res.status(400).json({
+            message:"Input invalidation failed"
+        })
+        return
     }
 
     try {
         const user = await client.user.findFirst({
             where: {
-                username
+                username:parsedData.data.username
             }
         });
         if (!user) {
-            res.status(400).send({ message: "User not found" });
+            res.status(403).json({ message: "User not found" });
             return;
         }
-        if (user.password !== password) {
-            res.status(400).send({ message: "Incorrect password" });
-            return;
+        const isPasswordCorrect = await compare(parsedData.data.password,user.password)
+        if(!isPasswordCorrect){
+            res.status(403).json({message:"Incorrect password"})
+            return
         }
         const token = jwt.sign({
             role:user.role,
-            id:user.id
-        },JWT_SECRET!)
-        res.status(200).send({ message: "Sign-in successful", userId: user.id });
+            userId:user.id
+        },JWT_SECRET!,{
+            expiresIn:"7D"
+        })
+        res.status(200).json({ message: "Sign-in successful", token });
     } catch (error) {
-        res.status(500).send({ message: "An error occurred during sign-in", error });
+        res.status(500).json({ message: "An error occurred during sign-in", error });
     }
 };
