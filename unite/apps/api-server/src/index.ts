@@ -8,7 +8,6 @@ const app = express()
 app.use(cors({
     origin:"*"
 }))
-console.log(client)
 app.use(express.json())
 app.use(v1Router)
 const PORT = process.env.PORT || 8000

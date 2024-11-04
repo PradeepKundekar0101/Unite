@@ -11,8 +11,8 @@ model User {
   id       String  @id @unique @default(cuid())
   username String  @unique
   password String  @unique
-  avatarId String
-  avatar   Avatar  @relation(fields: [avatarId], references: [id])
+  avatarId String?
+  avatar   Avatar? @relation(fields: [avatarId], references: [id])
   role     Role
   spaces   Space[]
 }
