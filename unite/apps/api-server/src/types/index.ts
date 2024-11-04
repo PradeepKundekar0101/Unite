@@ -1,14 +1,14 @@
 import z from "zod";
 
 export const SignUpSchema = z.object({
-    username: z.string().min(3).max(10),
-    password: z.string().min(8),
-    type: z.enum(["User","Admin"])
+    username: z.string().min(3).max(32),
+    password: z.string().min(5),
+    type: z.enum(["user","admin"])
 })
 
 export const SignInSchema = z.object({
-    username: z.string().min(3).max(10),
-    password: z.string().min(8),
+    username: z.string(),
+    password: z.string()
 })
 
 export const UpdateMetaDataSchema  = z.object({
@@ -39,7 +39,7 @@ export const updateElementSchema = z.object({
 
 export const createAvatarSchema = z.object({
     imageUrl:z.string(),
-    name:z.string().min(4).max(20)
+    name:z.string().min(3).max(32)
 })
 export const createMapSchema = z.object({
     thumbnail:z.string(),

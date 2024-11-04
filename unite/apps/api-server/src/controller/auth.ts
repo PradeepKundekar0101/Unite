@@ -3,6 +3,8 @@ import client from "@repo/db/client"
 import jwt from 'jsonwebtoken'
 import { SignInSchema, SignUpSchema } from "../types";
 import {hash,compare} from '../utils/bcrypt'
+import dotenv from "dotenv"
+dotenv.config()
 const JWT_SECRET = process.env.JWT_SECRET
 
 export const createAccount = async (req:Request,res:Response)=>{
@@ -18,13 +20,12 @@ export const createAccount = async (req:Request,res:Response)=>{
         const createUser = await client.user.create({data:{
             username:parsedData.data.username,
             password:hashedPassword,
-            role: parsedData.data.type
+            role: parsedData.data.type =="admin"?"Admin":"User"
         }})
         res.status(200).json({userId:createUser.id})
     } catch (error) {
         res.status(400).json({message:"User name already taken"})
     }
-
 }
 export const signIn = async (req: Request, res: Response) => {
     const parsedData = SignInSchema.safeParse(req.body)
@@ -58,6 +59,7 @@ export const signIn = async (req: Request, res: Response) => {
         })
         res.status(200).json({ message: "Sign-in successful", token });
     } catch (error) {
+        console.log(error)
         res.status(500).json({ message: "An error occurred during sign-in", error });
     }
 };

@@ -9,7 +9,7 @@ app.use(cors({
     origin:"*"
 }))
 app.use(express.json())
-app.use(v1Router)
+app.use("/api/v1",v1Router)
 const PORT = process.env.PORT || 8000
 app.listen(PORT,()=>{
     console.log("API SERVER Running at PORT: "+PORT)
