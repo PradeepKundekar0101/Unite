@@ -1,12 +1,56 @@
 import { Request, Response } from "express";
-import { createAvatarSchema } from "../types";
+import { createAvatarSchema, CreateElementSchema, createMapSchema, updateElementSchema } from "../types";
 import client from "@repo/db/client";
 
-export const createElement = (req:Request,res:Response)=>{
-
+export const createElement = async (req:Request,res:Response)=>{
+    const parsedData = CreateElementSchema.safeParse(req.body)
+    if(!parsedData.success){
+        res.status(400).json({message:"Invalid input"})
+        return
+    }
+    try {
+        const newElement = await client.element.create({
+            data:{
+                imageUrl: parsedData.data.imageUrl,
+                static: parsedData.data.static,
+                height: parsedData.data.height,
+                width:parsedData.data.width
+            }
+        })
+        res.status(200).json({
+            id:newElement.id
+        })
+    } catch (error) {
+        res.status(500).json({message:"Error"})
+    }
 }
-export const updateElement = (req:Request,res:Response)=>{
-
+export const updateElement = async (req:Request,res:Response)=>{
+    const parsedData = updateElementSchema.safeParse(req.body)
+    if(!parsedData.success){
+        res.status(400).json({message:"Invalid input"})
+        return
+    }
+    try {
+        const elementId = req.params.elementId
+        const element = await client.element.findUnique({where:{id:elementId}})
+        if(!element){
+            res.status(400).json({message:"ELement not found"})
+            return 
+        }
+        
+        await client.element.update({
+            where:{
+                id:elementId
+            },data:{
+                imageUrl:parsedData.data.imageUrl
+            }
+        })
+        res.status(200).json({message:"Updated"})
+    } catch (error) {
+        res.status(500).json({
+            message:"Error"
+        })
+    }
 }
 export const createAvatar = async(req:Request,res:Response)=>{
     const parsedData = createAvatarSchema.safeParse(req.body)
@@ -38,6 +82,33 @@ export const createAvatar = async(req:Request,res:Response)=>{
         res.status(500).json({message:"Internal server error"})
     }
 }
-export const createMap = (req:Request,res:Response)=>{
+export const createMap = async(req:Request,res:Response)=>{
+    const parsedData = createMapSchema.safeParse(req.body)
 
+    if(!parsedData.success){
+        console.log(parsedData.data)
+        res.status(400).json({message:"invalid data"})
+        return 
+    }
+    try {
+        const map = await client.map.create({
+            data:{
+                name:parsedData.data.name,
+                elements:{
+                    create:
+                    parsedData.data.defaultElements.map((e)=>{
+                    return {
+                        x:e.x!,
+                        y:e.y!,
+                        elementId:e.elementId!
+                    }
+                })},
+                height:Number(parsedData.data.dimensions.split("x")[0]),
+                width:Number(parsedData.data.dimensions.split("x")[1]),
+            }
+        })
+        res.status(200).json({mapId:map.id})
+    } catch (error) {
+        res.status(500).json({message:"Error"})
+    }
 }

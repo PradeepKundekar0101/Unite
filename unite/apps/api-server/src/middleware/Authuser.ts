@@ -9,6 +9,7 @@ export interface AuthenticatedRequest extends Request {
 }
 
 export const authUser = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+
   const authHeader = req.headers.authorization;
   if (!authHeader) {
      res.status(403).send({ message: 'Unauthorized' });
@@ -16,6 +17,7 @@ export const authUser = (req: AuthenticatedRequest, res: Response, next: NextFun
   }
   const token = authHeader.split(' ')[1];
   if (!token) {
+   console.log("Unauthorized2")
      res.status(403).send({ message: 'Unauthorized' });
      return
   }
