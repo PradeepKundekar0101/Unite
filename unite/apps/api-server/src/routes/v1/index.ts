@@ -8,9 +8,10 @@ import { getAllElements } from "../../controller/element"
 
 const router = express.Router()
 
-router.post("/signup",signIn)
+router.post("/signup",createAccount)
+router.post("/signin",signIn)
 router.get("/avatars",getAllAvatars)
-router.get("/element",getAllElements)
+router.get("/elements",getAllElements)
 
 router.use("/user",userRouter)
 router.use("/space",spaceRouter)

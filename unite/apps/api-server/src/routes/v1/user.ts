@@ -1,9 +1,10 @@
 import express from 'express'
 import { authUser } from '../../middleware/Authuser';
-import { getMetaData } from '../../controller/user';
+import { getBulkMetaData, getMetaData, updateMetaData } from '../../controller/user';
 const router = express.Router()
 
 router.get("/metadata",authUser,getMetaData)
-router.get("/metadata/bulk",authUser,getMetaData)
+router.post("/metadata",authUser,updateMetaData)
+router.get("/metadata/bulk",getBulkMetaData)
 
 export default router;
