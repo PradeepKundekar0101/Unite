@@ -21,6 +21,7 @@
     "packages/*"
   ],
   "dependencies": {
+    "websocket-server": "^1.0.0",
     "ws": "^8.18.0"
   }
 }
