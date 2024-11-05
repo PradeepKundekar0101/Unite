@@ -1,1076 +1,1041 @@
 const axios2 = require("axios");
-const { WebSocket } = require("ws");
-const URL = "http://localhost:8000";
-const WS_URL = "http://localhost:8001";
+
+const BACKEND_URL = "http://localhost:8000"
+const WS_URL = "ws://localhost:3001"
 
 const axios = {
-  post: async (...args) => {
-    try {
-      const res = await axios2.post(...args);
-      return res;
-    } catch (error) {
-      return error.response;
-    }
-  },
-  get: async (...args) => {
-    try {
-      const res = await axios2.get(...args);
-      return res;
-    } catch (error) {
-      return error.response;
-    }
-  },
-  put: async (...args) => {
-    try {
-      const res = await axios2.put(...args);
-      return res;
-    } catch (error) {
-      return error.response;
-    }
-  },
-  delete: async (...args) => {
-    try {
-      const res = await axios2.delete(...args);
-      return res;
-    } catch (error) {
-      return error.response;
-    }
-  },
-  
-};
-describe("User Authentication", () => {
-  let username;
-  let password;
-  test("User doesn't provide username", async () => {
-      const response = await axios.post(URL + "/api/v1/signup");
-      expect(response.status).toBe(400);
-  });
-  test("User provides username", async () => {
-    username = "pradeep-" + Math.random();
-    password = "12345678";
-    const response = await axios.post(URL + "/api/v1/signup", {
-      username,
-      password,
-      type: "admin",
-    });
-    expect(response.status).toBe(200);
-  });
-  test("User provides wrong password", async () => {
-    const response = await axios.post(URL + "/api/v1/signin", {
-      username,
-      password: "Wrongpassword",
-    });
-    expect(response.status).toBe(403);
-  });
-  test("User provides wrong username", async () => {
-    const response = await axios.post(URL + "/api/v1/signin", {
-      username: "WrongUserName",
-      password,
-    });
-    expect(response.status).toBe(403);
-  });
-
-  test("Successfull Sign in", async () => {
-    const response = await axios.post(URL + "/api/v1/signin", {
-      username,
-      password,
-    });
-    expect(response.status).toBe(200);
-    expect(response.data.token).toBeDefined();
-  });
-});
-
-describe("User meta data", () => {
-  let adminUserName;
-  let adminPassword;
-  let token;
-  let avatarId;
-  beforeAll(async () => {
-    adminUserName = "admin-" + Math.random();
-    adminPassword = "123456";
-    await axios.post(URL + "/api/v1/signup", {
-      username: adminUserName,
-      password: adminPassword,
-      type: "admin",
-    });
-    const { data } = await axios.post(URL + "/api/v1/signin", {
-      username: adminUserName,
-      password: adminPassword,
-    });
-    token = data.token;
-  });
-
-  test("Create an Avatar without token", async () => {
-    const response = await axios.post(URL + "/api/v1/admin/avatar");
-    expect(response.status).toBe(403);
-  });
-  test("Create an Avatar with token", async () => {
-    const response = await axios.post(
-      URL + "/api/v1/admin/avatar",
-      {
-        imageUrl:
-          "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQm3RFDZM21teuCMFYx_AROjt-AzUwDBROFww&s",
-        name: "Timmy-"+Math.random(),
-      },
-      {
-        headers: {
-          authorization: "Bearer " + token,
-        },
-      }
-    );
-    avatarId = response.data.avatarId;
-    expect(response.status).toBe(200);
-  });
-  test("Update meta data without token", async () => {
-    const response = await axios.post(URL + "/api/v1/user/metadata");
-    expect(response.status).toBe(403);
-  });
-  test("Update meta data with token", async () => {
-    const response = await axios.post(
-      URL + "/api/v1/user/metadata",
-      {
-        avatarId,
-      },
-      {
-        headers: {
-          authorization: "Bearer " + token,
-        },
-      }
-    );
-    expect(response.status).toBe(200);
-  });
-});
-
-describe("Get the avatars", () => {
-  let adminUserName;
-  let adminPassword;
-  let token;
-  let userId;
-  let avatarId;
-  beforeAll(async () => {
-    adminUserName = "user-" + Math.random();
-    adminPassword = "123456";
-    const { data: signUpResponse } = await axios.post(URL + "/api/v1/signup", {
-      username: adminUserName,
-      password: adminPassword,
-      type: "admin",
-    });
-    userId = signUpResponse.userId;
-    const { data } = await axios.post(URL + "/api/v1/signin", {
-      username: adminUserName,
-      password: adminPassword,
-    });
-    token = data.token;
-
-    const { data: createAvatarResponse } = await axios.post(
-      URL + "/api/v1/admin/avatar",
-      {
-        imageUrl:
-          "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQm3RFDZM21teuCMFYx_AROjt-AzUwDBROFww&s",
-        name: "Timmy-" + Math.random(),
-      },
-      {
-        headers: {
-          authorization: "Bearer " + token,
-        },
-      }
-    );
-    avatarId = createAvatarResponse.avatarId;
-  });
-  test("Get the user avatar details", async () => {
-    const response = await axios.get(
-      `${URL}/api/v1/user/metadata/bulk?ids=${JSON.stringify([userId])}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-    expect(response.status).toBe(200);
-    expect(response.data.avatars.length).toBe(1);
-    expect(response.data.avatars[0].userId).toBe(userId);
-  });
-  test("Get list of avatars", async () => {
-    const response = await axios.get(URL + "/api/v1/avatars");
-    expect(response.status).toBe(200);
-    expect(response.data.avatars.length).not.toBe(0);
-    const currentAvatar = response.data.avatars.find((e) => e.id == avatarId);
-    expect(currentAvatar).toBeDefined();  
-  });
-});
-
-describe("Spaces", () => {
-  let token;
-  const username = "admin" + Math.random();
-  const password = "12345";
-  let element1Id = "";
-  let element2Id = "";
-  let mapId = "";
-  let spaceId = "";
-  beforeAll(async () => {
-    const response = await axios.post(URL + "/api/v1/signup", {
-      username,
-      password,
-      type: "admin",
-    });
-    userId = response.data.userId;
-    const { data: signInData } = await axios.post(URL + "/api/v1/signin", {
-      username,
-      password,
-    });
-    token = signInData.token;
-
-    const { data: createElement1ResponseData } = await axios.post(
-      URL + "/api/v1/admin/element",
-      {
-        imageUrl: "http://localhost:3000",
-        width: 1,
-        height: 1,
-        static: true,
-      },
-      {
-        headers: {
-          authorization: "Bearer " + token,
-        },
-      }
-    );
-    element1Id = createElement1ResponseData.id;
-    const { data: createElement2ResponseData } = await axios.post(
-      URL + "/api/v1/admin/element",
-      {
-        imageUrl: "http://localhost:3000",
-        width: 1,
-        height: 1,
-        static: true,
-      },
-      {
-        headers: {
-          authorization: "Bearer " + token,
-        },
-      }
-    );
-    element2Id = createElement2ResponseData.id;
-
-    const { data: createMarketResponseData } = await axios.post(
-      URL + "/api/v1/admin/map",
-      {
-        thumbnail: "https://thumbnail.com/a.png",
-        dimensions: "100x200",
-        defaultElements: [
-          {
-            elementId: element1Id,
-            x: 20,
-            y: 20,
-          },
-          {
-            elementId: element2Id,
-            x: 30,
-            y: 30,
-          },
-        ],
-      },
-      {
-        headers: {
-          authorization: "Bearer " + token,
-        },
-      }
-    );
-    mapId = createMarketResponseData.mapId;
-  });
-  test("Create space without token", async () => {
-    const response = await axios.post(URL + "/api/v1/space", {
-      name: "Test",
-      dimensions: "100x200",
-      mapId,
-    });
-    expect(response.status).toBe(403);
-  });
-
-  test("Create space without mapId ", async () => {
-    const response = await axios.post(URL + "/api/v1/space", {
-      name: "Test1",
-      dimensions: "100x200",
-
-    },{headers:{
-      authorization:"Bearer "+token
-    }});
-    expect(response.data.spaceId).toBeDefined();
-    expect(response.status).toBe(200);
-  });
-
-  test("Create space without mapId and dimensions ", async () => {
-    const response = await axios.post(URL + "/api/v1/space", {
-      name: "Test2",
-    },{headers:{
-      authorization:"Bearer "+token
-    }});
-    expect(response.status).toBe(400);
-  });
-  test("Create space without name", async () => {
-    const response = await axios.post(URL + "/api/v1/space", {
-      dimensions: "100x200",
-      mapId: mapId,
-    },{headers:{
-      authorization:"Bearer "+token
-    }});
-    expect(response.status).toBe(400);
-  });
-  test("Create space with token", async () => {
-    const response = await axios.post(
-      URL + "/api/v1/space",
-      {
-        name: "Space",
-        dimensions: "100x200",
-        mapId: mapId,
-      },
-      {
-        headers: {
-          authorization: "Bearer " + token,
-        },
-      }
-    );
-    spaceId = response.data.spaceId;
-    expect(response.status).toBe(200);
-    expect(response.data.spaceId).toBeDefined();
-  });
-  test("Get All spaces without token", async () => {
-    const response = await axios.get(URL + "/api/v1/space/all");
-    expect(response.status).toBe(403);
-  });
-  test("Get All spaces with token", async () => {
-    const response = await axios.get(URL + "/api/v1/space/all", {
-      headers: {
-        authorization: "Bearer " + token,
-      },
-    });
-    expect(response.data.spaces.length).toBe(2);
-    expect(response.status).toBe(200);
-  });
-
-  test("Delete space without token", async () => {
-    const response = await axios.delete(URL + "/api/v1/space/" + spaceId);
-    expect(response.status).toBe(403);
-  });
-  test("Delete a space that doesn't exists", async () => {
-    const response = await axios.delete(URL + "/api/v1/space/randomId", {
-      headers: {
-        authorization: "Bearer " + token,
-      },
-    });
-    expect(response.status).toBe(400);
-  });
-  test("Delete space with token and the space exists", async () => {
-    const response = await axios.delete(URL + "/api/v1/space/" + spaceId, {
-      headers: {
-        authorization: "Bearer " + token,
-      },
-    });
-    expect(response.status).toBe(200);
-  });
-  test("Get All spaces with token after deleting", async () => {
-    const response = await axios.get(URL + "/api/v1/space/all", {
-      headers: {
-        authorization: "Bearer " + token,
-      },
-    });
-    expect(response.data.spaces.length).toBe(1);
-    expect(response.status).toBe(200);
-  });
-});
-
-describe("Arena", () => {
-  let token;
-  const username = "admin" + Math.random();
-  const password = "12345";
-  let element1Id = "";
-  let element2Id = "";
-  let spaceElement1Id = "";
-  let spaceElement2Id = "";
-  let mapId = "";
-  let spaceId = "";
-  beforeAll(async () => {
-    const response = await axios.post(URL + "/api/v1/signup", {
-      username,
-      password,
-      type: "admin",
-    });
-    userId = response.data.userId;
-    const { data: signInData } = await axios.post(URL + "/api/v1/signin", {
-      username,
-      password,
-    });
-    token = signInData.token;
-
-    const { data: createElement1ResponseData } = await axios.post(
-      URL + "/api/v1/admin/element",
-      {
-        imageUrl: "http://localhost:3000",
-        width: 1,
-        height: 1,
-        static: true,
-      },
-      {
-        headers: {
-          authorization: "Bearer " + token,
-        },
-      }
-    );
-    element1Id = createElement1ResponseData.id;
-
-    const { data: createElement2ResponseData } = await axios.post(
-      URL + "/api/v1/admin/element",
-      {
-        imageUrl: "http://localhost:3000",
-        width: 1,
-        height: 1,
-        static: true,
-      },
-      {
-        headers: {
-          authorization: "Bearer " + token,
-        },
-      }
-    );
-    element2Id = createElement2ResponseData.id;
-
-    const { data: createMarketResponseData } = await axios.post(
-      URL + "/api/v1/admin/map",
-      {
-        thumbnail: "https://thumbnail.com/a.png",
-        dimensions: "100x200",
-        defaultElements: [
-          {
-            elementId: element1Id,
-            x: 20,
-            y: 20,
-          },
-          {
-            elementId: element2Id,
-            x: 30,
-            y: 30,
-          },
-        ],
-      },
-      {
-        headers: {
-          authorization: "Bearer " + token,
-        },
-      }
-    );
-
-    mapId = createMarketResponseData.mapId;
-
-    const spaceResponse = await axios.post(URL + "/api/v1/space", {
-      name: "Test",
-      dimensions: "100x200",
-      mapId: mapId,
-    },{
-      headers:{
-        authorization:"Bearer "+token
-      }
-    });
-    console.log(spaceResponse)
-    spaceId = spaceResponse.data.spaceId;
-  });
-
-  test("Get space by Id", async () => {
-    const response = await axios.get(URL + "/api/v1/space/" + spaceId, {
-      headers: {
-        authorization: "Bearer " + token,
-      },
-    });
-    expect(response.data).toBeDefined();
-  });
-  test("Get space by Id which does not exists", async () => {
-    const response = await axios.get(URL + "/api/v1/space/randomId", {
-      headers: {
-        authorization: "Bearer " + token,
-      },
-    });
-    expect(response.status).toBe(400);
-  });
-  test("Add element to the space", async () => {
-    console.log(element1Id)
-    console.log(spaceId)
-    const response = await axios.post(URL + "/api/v1/space/element",{
-      elementId:element1Id,
-      x:30,
-      y:20,
-      spaceId
-    },{headers:{
-      authorization:"Bearere "+token
-    }});
-    console.log(response)
-    spaceElement1Id = response.data.spaceElementId;
-    expect(response.status).toBe(200);
-  });
-  test("Add element to the space without elementId", async () => {
-    const response = await axios.post(
-      URL + "/api/v1/space/element",
-      {
-        spaceId,
-        x: 50,
-        y: 20,
-      },
-      {
-        headers: {
-          authorization: "Bearer " + token,
-        },
-      }
-    );
-    expect(response.status).toBe(400);
-  });
-  test("Add element to the space without spaceId", async () => {
-    const response = await axios.post(
-      URL + "/api/v1/space/element",
-      {
-        elementId: element1Id,
-        x: 50,
-        y: 20,
-      },
-      {
-        headers: {
-          authorization: "Bearer " + token,
-        },
-      }
-    );
-    expect(response.status).toBe(400);
-  });
-  test("Delete an element which does not exist in the space", async () => {
-
-    const response = await axios.delete(URL + "/api/v1/space/element", {
-      data: {
-          spaceId,
-          elementId: "element1Id",
-      },
-      headers: {
-          authorization: "Bearer " + token,
-      },
-  });
-  
-    expect(response.status).toBe(400);
-  });
-  test("Delete an space element", async () => {
-    const response = await axios.delete(
-      URL + "/api/v1/space/element",
-      {
-        data:{
-          spaceId: spaceId,
-          elementId: spaceElement1Id,
-        },
-        headers: {
-          authorization: "Bearer " + token,
+    post: async (...args) => {
+        try {
+            const res = await axios2.post(...args)
+            return res
+        } catch(e) {
+            return e.response
         }
-      }
-    );
-    expect(response.status).toBe(200);
-  });
-  test("Get all the elements", async () => {
-    const response = await axios.get(URL + "/api/v1/elements", {
-      headers: {
-        authorization: "Bearer " + token,
-      },
+    },
+    get: async (...args) => {
+        try {
+            const res = await axios2.get(...args)
+            return res
+        } catch(e) {
+            return e.response
+        }
+    },
+    put: async (...args) => {
+        try {
+            const res = await axios2.put(...args)
+            return res
+        } catch(e) {
+            return e.response
+        }
+    },
+    delete: async (...args) => {
+        try {
+            const res = await axios2.delete(...args)
+            return res
+        } catch(e) {
+            return e.response
+        }
+    },
+}
+
+describe("Authentication", () => {
+    test('User is able to sign up only once', async () => {
+        const username = "kirat" + Math.random(); // kirat0.12331313
+        const password = "123456";
+        const response = await axios.post(`${BACKEND_URL}/api/v1/signup`, {
+            username,
+            password,
+            type: "admin"
+        })
+
+        expect(response.status).toBe(200)
+        const updatedResponse = await axios.post(`${BACKEND_URL}/api/v1/signup`, {
+            username,
+            password,
+            type: "admin"
+        })
+
+        expect(updatedResponse.status).toBe(400);
     });
-    expect(response.status).toBe(200);
-    expect(response.data.elements.length).toBeDefined();
-  });
+
+    test('Signup request fails if the username is empty', async () => {
+        const username = `kirat-${Math.random()}` // kirat-0.12312313
+        const password = "123456"
+
+        const response = await axios.post(`${BACKEND_URL}/api/v1/signup`, {
+            password
+        })
+
+        expect(response.status).toBe(400)
+    })
+
+    test('Signin succeeds if the username and password are correct', async() => {
+        const username = `kirat-${Math.random()}`
+        const password = "123456"
+
+        await axios.post(`${BACKEND_URL}/api/v1/signup`, {
+            username,
+            password,
+            type: "admin"
+        });
+
+        const response = await axios.post(`${BACKEND_URL}/api/v1/signin`, {
+            username,
+            password
+        });
+
+        expect(response.status).toBe(200)
+        expect(response.data.token).toBeDefined()
+        
+    })
+
+    test('Signin fails if the username and password are incorrect', async() => {
+        const username = `kirat-${Math.random()}`
+        const password = "123456"
+
+        await axios.post(`${BACKEND_URL}/api/v1/signup`, {
+            username,
+            password,
+            role: "admin"
+        });
+
+        const response = await axios.post(`${BACKEND_URL}/api/v1/signin`, {
+            username: "WrongUsername",
+            password
+        })
+
+        expect(response.status).toBe(403)
+    })
+})
+
+describe("User metadata endpoint", () => {
+    let token = "";
+    let avatarId = ""
+
+    beforeAll(async () => {
+       const username = `kirat-${Math.random()}`
+       const password = "123456"
+
+       await axios.post(`${BACKEND_URL}/api/v1/signup`, {
+        username,
+        password,
+        type: "admin"
+       });
+
+       const response = await axios.post(`${BACKEND_URL}/api/v1/signin`, {
+        username,
+        password
+       })
+
+       token = response.data.token
+
+       const avatarResponse = await axios.post(`${BACKEND_URL}/api/v1/admin/avatar`, {
+            "imageUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQm3RFDZM21teuCMFYx_AROjt-AzUwDBROFww&s",
+            "name": "Timmy"
+        }, {
+            headers: {
+                authorization: `Bearer ${token}`
+            }
+        })
+        console.log(avatarResponse)
+        console.log("avatarresponse is " + avatarResponse.data.avatarId)
+
+        avatarId = avatarResponse.data.avatarId;
+
+    })
+
+    test("User cant update their metadata with a wrong avatar id", async () => {
+        const response = await axios.post(`${BACKEND_URL}/api/v1/user/metadata`, {
+            avatarId: "123123123"
+        }, {
+            headers: {
+                "authorization": `Bearer ${token}`
+            }
+        })
+
+        expect(response.status).toBe(400)
+    })
+    console.log(avatarId)
+    test("User can update their metadata with the right avatar id", async () => {
+        const response = await axios.post(`${BACKEND_URL}/api/v1/user/metadata`, {
+            avatarId
+        }, {
+            headers: {
+                "authorization": `Bearer ${token}`
+            }
+        })
+
+        expect(response.status).toBe(200)
+    })
+
+    test("User is not able to update their metadata if the auth header is not present", async () => {
+        const response = await axios.post(`${BACKEND_URL}/api/v1/user/metadata`, {
+            avatarId
+        })
+
+        expect(response.status).toBe(403)
+    })
+
+    test("test 3", () => {
+        
+    })
 });
 
-describe("Admin Map", () => {
-  let token;
-  const username = "admin" + Math.random();
-  const user_username = "admin" + Math.random();
-  const password = "12345";
-  let element1Id = "";
-  let element2Id = "";
-  let mapId = "";
-  let spaceId = "";
-  let userToken = "";
-  beforeAll(async () => {
-    const response = await axios.post(URL + "/api/v1/signup", {
-      username,
-      password,
-      type: "admin",
+describe("User avatar information", () => {
+    let avatarId;
+    let token;
+    let userId;
+
+    beforeAll(async () => {
+        const username = `kirat-${Math.random()}`
+        const password = "123456"
+ 
+        const signupResponse = await axios.post(`${BACKEND_URL}/api/v1/signup`, {
+         username,
+         password,
+         type: "admin"
+        });
+
+        userId = signupResponse.data.userId
+ 
+        console.log("userid is " + userId)
+        const response = await axios.post(`${BACKEND_URL}/api/v1/signin`, {
+         username,
+         password
+        })
+ 
+        token = response.data.token
+ 
+        const avatarResponse = await axios.post(`${BACKEND_URL}/api/v1/admin/avatar`, {
+             "imageUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQm3RFDZM21teuCMFYx_AROjt-AzUwDBROFww&s",
+             "name": "Timmy"
+         }, {
+            headers: {
+                authorization: `Bearer ${token}`
+            }
+         })
+ 
+         avatarId = avatarResponse.data.avatarId;
+ 
+    })
+
+    test("Get back avatar information for a user", async () => {
+        console.log("asking for user with id " + userId)
+        const response = await axios.get(`${BACKEND_URL}/api/v1/user/metadata/bulk?ids=[${userId}]`);
+        console.log("response was " + userId)
+        console.log(JSON.stringify(response.data))
+        expect(response.data.avatars.length).toBe(1);
+        expect(response.data.avatars[0].userId).toBe(userId);
+    })
+
+    test("Available avatars lists the recently created avatar", async () => {
+        const response = await axios.get(`${BACKEND_URL}/api/v1/avatars`);
+        expect(response.data.avatars.length).not.toBe(0);
+        const currentAvatar = response.data.avatars.find(x => x.id == avatarId);
+        expect(currentAvatar).toBeDefined()
+    })
+
+})
+
+describe("Space information", () => {
+    let mapId;
+    let element1Id;
+    let element2Id;
+    let adminToken;
+    let adminId;
+    let userToken;
+    let userId;
+
+    beforeAll(async () => {
+        const username = `kirat-${Math.random()}`
+        const password = "123456"
+ 
+        const signupResponse = await axios.post(`${BACKEND_URL}/api/v1/signup`, {
+         username,
+         password,
+         type: "admin"
+        });
+
+        adminId = signupResponse.data.userId
+ 
+        const response = await axios.post(`${BACKEND_URL}/api/v1/signin`, {
+         username,
+         password
+        })
+ 
+        adminToken = response.data.token
+
+        const userSignupResponse = await axios.post(`${BACKEND_URL}/api/v1/signup`, {
+            username: username + "-user",
+            password,
+            type: "user"
+        });
+   
+        userId = userSignupResponse.data.userId
+    
+        const userSigninResponse = await axios.post(`${BACKEND_URL}/api/v1/signin`, {
+            username: username + "-user",
+            password
+        })
+    
+        userToken = userSigninResponse.data.token
+
+        const element1Response = await axios.post(`${BACKEND_URL}/api/v1/admin/element`, {
+            "imageUrl": "https://encrypted-tbn0.gstatic.com/shopping?q=tbn:ANd9GcRCRca3wAR4zjPPTzeIY9rSwbbqB6bB2hVkoTXN4eerXOIkJTG1GpZ9ZqSGYafQPToWy_JTcmV5RHXsAsWQC3tKnMlH_CsibsSZ5oJtbakq&usqp=CAE",
+            "width": 1,
+            "height": 1,
+          "static": true
+        }, {
+            headers: {
+                authorization: `Bearer ${adminToken}`
+            }
+        });
+
+        const element2Response = await axios.post(`${BACKEND_URL}/api/v1/admin/element`, {
+            "imageUrl": "https://encrypted-tbn0.gstatic.com/shopping?q=tbn:ANd9GcRCRca3wAR4zjPPTzeIY9rSwbbqB6bB2hVkoTXN4eerXOIkJTG1GpZ9ZqSGYafQPToWy_JTcmV5RHXsAsWQC3tKnMlH_CsibsSZ5oJtbakq&usqp=CAE",
+            "width": 1,
+            "height": 1,
+          "static": true
+        }, {
+            headers: {
+                authorization: `Bearer ${adminToken}`
+            }
+        })
+        element1Id = element1Response.data.id
+        element2Id = element2Response.data.id
+        console.log(element2Id)
+        console.log(element1Id)
+        const mapResponse = await axios.post(`${BACKEND_URL}/api/v1/admin/map`, {
+            "thumbnail": "https://thumbnail.com/a.png",
+            "dimensions": "100x200",
+            "name": "Test space",
+            "defaultElements": [{
+                    elementId: element1Id,
+                    x: 20,
+                    y: 20
+                }, {
+                  elementId: element1Id,
+                    x: 18,
+                    y: 20
+                }, {
+                  elementId: element2Id,
+                    x: 19,
+                    y: 20
+                }
+            ]
+         }, {
+            headers: {
+                authorization: `Bearer ${adminToken}`
+            }
+         })
+         console.log("mapResponse.status")
+         console.log(mapResponse.data.id)
+
+         mapId = mapResponse.data.id
+
     });
-    userId = response.data.userId;
-    const { data: signInData } = await axios.post(URL + "/api/v1/signin", {
-      username,
-      password,
+
+    test("User is able to create a space", async () => {
+
+        const response = await axios.post(`${BACKEND_URL}/api/v1/space`, {
+          "name": "Test",
+          "dimensions": "100x200",
+          "mapId": mapId
+       }, {
+        headers: {
+            authorization: `Bearer ${userToken}`
+        }
+       })
+       expect(response.status).toBe(200)
+       expect(response.data.spaceId).toBeDefined()
+    })
+
+    test("User is able to create a space without mapId (empty space)", async () => {
+        const response = await axios.post(`${BACKEND_URL}/api/v1/space`, {
+          "name": "Test",
+          "dimensions": "100x200",
+       }, {
+        headers: {
+            authorization: `Bearer ${userToken}`
+        }
+       })
+
+       expect(response.data.spaceId).toBeDefined()
+    })
+
+    test("User is not able to create a space without mapId and dimensions", async () => {
+        const response = await axios.post(`${BACKEND_URL}/api/v1/space`, {
+          "name": "Test",
+       }, {
+        headers: {
+            authorization: `Bearer ${userToken}`
+        }
+       })
+
+       expect(response.status).toBe(400)
+    })
+
+    test("User is not able to delete a space that doesnt exist", async () => {
+        const response = await axios.delete(`${BACKEND_URL}/api/v1/space/randomIdDoesntExist`, {
+            headers: {
+                authorization: `Bearer ${userToken}`
+            }
+        })
+
+       expect(response.status).toBe(400)
+    })
+
+    test("User is able to delete a space that does exist", async () => {
+        const response = await axios.post(`${BACKEND_URL}/api/v1/space`, {
+            "name": "Test",
+            "dimensions": "100x200",
+        }, {
+            headers: {
+                authorization: `Bearer ${userToken}`
+            }
+        })
+
+        const deleteReponse = await axios.delete(`${BACKEND_URL}/api/v1/space/${response.data.spaceId}`, {
+            headers: {
+                authorization: `Bearer ${userToken}`
+            }
+        })
+
+       expect(deleteReponse.status).toBe(200)
+    })
+
+    test("User should not be able to delete a space created by another user", async () => {
+        const response = await axios.post(`${BACKEND_URL}/api/v1/space`, {
+            "name": "Test",
+            "dimensions": "100x200",
+        }, {
+            headers: {
+                authorization: `Bearer ${userToken}`
+            }
+        })
+
+        const deleteReponse = await axios.delete(`${BACKEND_URL}/api/v1/space/${response.data.spaceId}`, {
+            headers: {
+                authorization: `Bearer ${adminToken}`
+            }
+        })
+
+       expect(deleteReponse.status).toBe(403)
+    })
+
+    test("Admin has no spaces initially", async () => {
+        const response = await axios.get(`${BACKEND_URL}/api/v1/space/all`, {
+            headers: {
+                authorization: `Bearer ${adminToken}`
+            }
+        });
+        expect(response.data.spaces.length).toBe(0)
+    })
+
+    test("Admin has gets once space after", async () => {
+        const spaceCreateReponse = await axios.post(`${BACKEND_URL}/api/v1/space`, {
+            "name": "Test",
+            "dimensions": "100x200",
+        }, {
+            headers: {
+                authorization: `Bearer ${adminToken}`
+            }
+        });
+        console.log('jhflksdjflksdfjlksdfj')
+        console.log(spaceCreateReponse.data)
+        const response = await axios.get(`${BACKEND_URL}/api/v1/space/all`, {
+            headers: {
+                authorization: `Bearer ${adminToken}`
+            }
+        });
+        const filteredSpace = response.data.spaces.find(x => x.id == spaceCreateReponse.data.spaceId)
+        expect(response.data.spaces.length).toBe(1)
+        expect(filteredSpace).toBeDefined()
+
+    })
+})
+
+describe("Arena endpoints", () => {
+    let mapId;
+    let element1Id;
+    let element2Id;
+    let adminToken;
+    let adminId;
+    let userToken;
+    let userId;
+    let spaceId;
+
+    beforeAll(async () => {
+        const username = `kirat-${Math.random()}`
+        const password = "123456"
+ 
+        const signupResponse = await axios.post(`${BACKEND_URL}/api/v1/signup`, {
+         username,
+         password,
+         type: "admin"
+        });
+
+        adminId = signupResponse.data.userId
+ 
+        const response = await axios.post(`${BACKEND_URL}/api/v1/signin`, {
+         username: username,
+         password
+        })
+ 
+        adminToken = response.data.token
+
+        const userSignupResponse = await axios.post(`${BACKEND_URL}/api/v1/signup`, {
+            username: username + "-user",
+            password,
+            type: "user"
+        });
+   
+        userId = userSignupResponse.data.userId
+    
+        const userSigninResponse = await axios.post(`${BACKEND_URL}/api/v1/signin`, {
+            username: username  + "-user",
+            password
+        })
+    
+        userToken = userSigninResponse.data.token
+
+        const element1Response = await axios.post(`${BACKEND_URL}/api/v1/admin/element`, {
+            "imageUrl": "https://encrypted-tbn0.gstatic.com/shopping?q=tbn:ANd9GcRCRca3wAR4zjPPTzeIY9rSwbbqB6bB2hVkoTXN4eerXOIkJTG1GpZ9ZqSGYafQPToWy_JTcmV5RHXsAsWQC3tKnMlH_CsibsSZ5oJtbakq&usqp=CAE",
+            "width": 1,
+            "height": 1,
+          "static": true
+        }, {
+            headers: {
+                authorization: `Bearer ${adminToken}`
+            }
+        });
+
+        const element2Response = await axios.post(`${BACKEND_URL}/api/v1/admin/element`, {
+            "imageUrl": "https://encrypted-tbn0.gstatic.com/shopping?q=tbn:ANd9GcRCRca3wAR4zjPPTzeIY9rSwbbqB6bB2hVkoTXN4eerXOIkJTG1GpZ9ZqSGYafQPToWy_JTcmV5RHXsAsWQC3tKnMlH_CsibsSZ5oJtbakq&usqp=CAE",
+            "width": 1,
+            "height": 1,
+          "static": true
+        }, {
+            headers: {
+                authorization: `Bearer ${adminToken}`
+            }
+        })
+        element1Id = element1Response.data.id
+        element2Id = element2Response.data.id
+
+        const mapResponse = await axios.post(`${BACKEND_URL}/api/v1/admin/map`, {
+            "thumbnail": "https://thumbnail.com/a.png",
+            "dimensions": "100x200",
+            name: "Default space",
+            "defaultElements": [{
+                    elementId: element1Id,
+                    x: 20,
+                    y: 20
+                }, {
+                  elementId: element1Id,
+                    x: 18,
+                    y: 20
+                }, {
+                  elementId: element2Id,
+                    x: 19,
+                    y: 20
+                }
+            ]
+         }, {
+            headers: {
+                authorization: `Bearer ${adminToken}`
+            }
+         })
+         console.log(mapResponse.data)
+         mapId = mapResponse.data.id
+          console.log(mapId)
+        const spaceResponse = await axios.post(`${BACKEND_URL}/api/v1/space`, {
+            "name": "Test",
+            "dimensions": "100x200",
+            "mapId": mapId
+        }, {headers: {
+            "authorization": `Bearer ${userToken}`
+        }})
+        console.log(spaceResponse.data)
+        spaceId = spaceResponse.data.spaceId
     });
-    token = signInData.token;
 
-    await axios.post(URL + "/api/v1/signup", {
-      username:user_username,
-      password,
-      type: "user",
-    });
-    const { data: signInDataUser } = await axios.post(URL + "/api/v1/signin", {
-      username:user_username,
-      password,
-    });
-    userToken = signInDataUser.token;
+    test("Incorrect spaceId returns a 400", async () => {
+        const response = await axios.get(`${BACKEND_URL}/api/v1/space/123kasdk01`, {
+            headers: {
+                "authorization": `Bearer ${userToken}`
+            }
+        });
+        expect(response.status).toBe(400)
+    })
+
+    test("Correct spaceId returns all the elements", async () => {
+        const response = await axios.get(`${BACKEND_URL}/api/v1/space/${spaceId}`, {
+            headers: {
+                "authorization": `Bearer ${userToken}`
+            }
+        }); 
+        expect(response.data.dimensions).toBe("100x200")
+        expect(response.data.elements.length).toBe(3)
+    })
+
+    test("Delete endpoint is able to delete an element", async () => {
+        const response = await axios.get(`${BACKEND_URL}/api/v1/space/${spaceId}`, {
+            headers: {
+                "authorization": `Bearer ${userToken}`
+            }
+        });
+        console.log(response.data)
+        console.log(response.data.elements[0].id )
+        let res = await axios.delete(`${BACKEND_URL}/api/v1/space/element`, {
+            data: {id: response.data.elements[0].id},
+            headers: {
+                "authorization": `Bearer ${userToken}`
+            }
+        });
+
+
+        const newResponse = await axios.get(`${BACKEND_URL}/api/v1/space/${spaceId}`, {
+            headers: {
+                "authorization": `Bearer ${userToken}`
+            }
+        });
+
+        expect(newResponse.data.elements.length).toBe(2)
+    })
+
+    test("Adding an element fails if the element lies outside the dimensions", async () => {
+       const newResponse = await axios.post(`${BACKEND_URL}/api/v1/space/element`, {
+            "elementId": element1Id,
+            "spaceId": spaceId,
+            "x": 10000,
+            "y": 210000
+        }, {
+            headers: {
+                "authorization": `Bearer ${userToken}`
+            }
+        });
+
+        expect(newResponse.status).toBe(400)
+    })
+
+    test("Adding an element works as expected", async () => {
+        const response1 = await axios.post(`${BACKEND_URL}/api/v1/space/element`, {
+            "elementId": element1Id,
+            "spaceId": spaceId,
+            "x": 50,
+            "y": 20
+        }, {
+            headers: {
+                "authorization": `Bearer ${userToken}`
+            }
+        });
+        console.log(response1.data)
+        const newResponse = await axios.get(`${BACKEND_URL}/api/v1/space/${spaceId}`, {
+            headers: {
+                "authorization": `Bearer ${userToken}`
+            }
+        });
+        console.log(newResponse.data.elements)
+
+        expect(newResponse.data.elements.length).toBe(3)
+    })
+
+})
+
+  describe("Admin Endpoints", () => {
+      let adminToken;
+      let adminId;
+      let userToken;
+      let userId;
+
+      beforeAll(async () => {
+          const username = `kirat-${Math.random()}`
+          const password = "123456"
+  
+          const signupResponse = await axios.post(`${BACKEND_URL}/api/v1/signup`, {
+           username,
+           password,
+           type: "admin"
+          });
+
+          adminId = signupResponse.data.userId
+  
+          const response = await axios.post(`${BACKEND_URL}/api/v1/signin`, {
+           username: username,
+           password
+          })
+  
+          adminToken = response.data.token
+
+          const userSignupResponse = await axios.post(`${BACKEND_URL}/api/v1/signup`, {
+              username: username + "-user",
+              password,
+              type: "user"
+          });
+    
+          userId = userSignupResponse.data.userId
+      
+          const userSigninResponse = await axios.post(`${BACKEND_URL}/api/v1/signin`, {
+              username: username  + "-user",
+              password
+          })
+      
+          userToken = userSigninResponse.data.token
+      });
+
+      test("User is not able to hit admin Endpoints", async () => {
+          const elementReponse = await axios.post(`${BACKEND_URL}/api/v1/admin/element`, {
+              "imageUrl": "https://encrypted-tbn0.gstatic.com/shopping?q=tbn:ANd9GcRCRca3wAR4zjPPTzeIY9rSwbbqB6bB2hVkoTXN4eerXOIkJTG1GpZ9ZqSGYafQPToWy_JTcmV5RHXsAsWQC3tKnMlH_CsibsSZ5oJtbakq&usqp=CAE",
+              "width": 1,
+              "height": 1,
+            "static": true
+          }, {
+              headers: {
+                  authorization: `Bearer ${userToken}`
+              }
+          });
+
+          const mapResponse = await axios.post(`${BACKEND_URL}/api/v1/admin/map`, {
+              "thumbnail": "https://thumbnail.com/a.png",
+              "dimensions": "100x200",
+              "name": "test space",
+              "defaultElements": []
+           }, {
+              headers: {
+                  authorization: `Bearer ${userToken}`
+              }
+          })
+
+          const avatarResponse = await axios.post(`${BACKEND_URL}/api/v1/admin/avatar`, {
+              "imageUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQm3RFDZM21teuCMFYx_AROjt-AzUwDBROFww&s",
+              "name": "Timmy"
+          }, {
+              headers: {
+                  "authorization": `Bearer ${userToken}`
+              }
+          })
+
+          const updateElementResponse = await axios.put(`${BACKEND_URL}/api/v1/admin/element/123`, {
+              "imageUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQm3RFDZM21teuCMFYx_AROjt-AzUwDBROFww&s",
+          }, {
+              headers: {
+                  "authorization": `Bearer ${userToken}`
+              }
+          })
+
+          expect(elementReponse.status).toBe(403)
+          expect(mapResponse.status).toBe(403)
+          expect(avatarResponse.status).toBe(403)
+          expect(updateElementResponse.status).toBe(403)
+      })
+
+      test("Admin is able to hit admin Endpoints", async () => {
+          const elementReponse = await axios.post(`${BACKEND_URL}/api/v1/admin/element`, {
+              "imageUrl": "https://encrypted-tbn0.gstatic.com/shopping?q=tbn:ANd9GcRCRca3wAR4zjPPTzeIY9rSwbbqB6bB2hVkoTXN4eerXOIkJTG1GpZ9ZqSGYafQPToWy_JTcmV5RHXsAsWQC3tKnMlH_CsibsSZ5oJtbakq&usqp=CAE",
+              "width": 1,
+              "height": 1,
+            "static": true
+          }, {
+              headers: {
+                  authorization: `Bearer ${adminToken}`
+              }
+          });
+
+          const mapResponse = await axios.post(`${BACKEND_URL}/api/v1/admin/map`, {
+              "thumbnail": "https://thumbnail.com/a.png",
+              "name": "Space",
+              "dimensions": "100x200",
+              "defaultElements": []
+           }, {
+              headers: {
+                  authorization: `Bearer ${adminToken}`
+              }
+          })
+
+          const avatarResponse = await axios.post(`${BACKEND_URL}/api/v1/admin/avatar`, {
+              "imageUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQm3RFDZM21teuCMFYx_AROjt-AzUwDBROFww&s",
+              "name": "Timmy"
+          }, {
+              headers: {
+                  "authorization": `Bearer ${adminToken}`
+              }
+          })
+          expect(elementReponse.status).toBe(200)
+          expect(mapResponse.status).toBe(200)
+          expect(avatarResponse.status).toBe(200)
+      })
+  
+      test("Admin is able to update the imageUrl for an element", async () => {
+          const elementResponse = await axios.post(`${BACKEND_URL}/api/v1/admin/element`, {
+              "imageUrl": "https://encrypted-tbn0.gstatic.com/shopping?q=tbn:ANd9GcRCRca3wAR4zjPPTzeIY9rSwbbqB6bB2hVkoTXN4eerXOIkJTG1GpZ9ZqSGYafQPToWy_JTcmV5RHXsAsWQC3tKnMlH_CsibsSZ5oJtbakq&usqp=CAE",
+              "width": 1,
+              "height": 1,
+            "static": true
+          }, {
+              headers: {
+                  authorization: `Bearer ${adminToken}`
+              }
+          });
+
+          const updateElementResponse = await axios.put(`${BACKEND_URL}/api/v1/admin/element/${elementResponse.data.id}`, {
+              "imageUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQm3RFDZM21teuCMFYx_AROjt-AzUwDBROFww&s",
+          }, {
+              headers: {
+                  "authorization": `Bearer ${adminToken}`
+              }
+          })
+
+          expect(updateElementResponse.status).toBe(200);
+
+      })
   });
 
-  test("Create an element with normal user", async () => {
-    const response = await axios.post(
-      URL + "/api/v1/admin/element",
-      {
-        imageUrl: "https://encryptsibsSZ5oJtbakq&usqp=CAE",
-        width: 1,
-        height: 1,
-        static: true,
-      },
-      {
-        headers: {
-          authorization: "Bearer " + userToken,
-        },
-      }
-    );
-    expect(response.status).toBe(403);
-  });
-  test("Create an element", async () => {
-    const response = await axios.post(
-      URL + "/api/v1/admin/element",
-      {
-        imageUrl: "https://encryptsibsSZ5oJtbakq&usqp=CAE",
-        width: 1,
-        height: 1,
-        static: true,
-      },
-      {
-        headers: {
-          authorization: "Bearer " + token,
-        },
-      }
-    );
-    expect(response.status).toBe(200);
-    expect(response.data).toBeDefined();
-  });
-  test("Create an element without width and height", async () => {
-    const response = await axios.post(
-      URL + "/api/v1/admin/element",
-      {
-        imageUrl: "https://encryptsibsSZ5oJtbakq&usqp=CAE",
-        static: true,
-      },
-      {
-        headers: {
-          authorization: "Bearer " + token,
-        },
-      }
-    );
-    expect(response.status).toBe(400);
-  });
-  test("Update an element by admin user", async () => {
-    console.log(token)
-    const elementResponse = await axios.post(URL + "/api/v1/admin/element", {
-      imageUrl: "https://encryptsibsSZ5oJtbakq&usqp=CAE",
-      width: 1,
-      height: 1,
-      static: true,
-    },{
-      headers:{authorization:"Bearer "+token}
-    });
-    console.log(elementResponse)
-    const response = await axios.put(
-      URL + "/api/v1/admin/element/" + elementResponse.data.id,
-      {
-        imageUrl: "https://encryptsibsSZ5oJtbakq&usqp=UPDATED",
-      },
-      {
-        headers: {
-          authorization: "Bearer " + token,
-        },
-      }
-    );
-    expect(response.status).toBe(200);
-    expect(response.data).toBeDefined();
-  });
-  test("Update an element", async () => {
+// describe("Websocket tests", () => {
+//     let adminToken;
+//     let adminUserId;
+//     let userToken;
+//     let adminId;
+//     let userId;
+//     let mapId;
+//     let element1Id;
+//     let element2Id;
+//     let spaceId;
+//     let ws1; 
+//     let ws2;
+//     let ws1Messages = []
+//     let ws2Messages = []
+//     let userX;
+//     let userY;
+//     let adminX;
+//     let adminY;
 
-    const elementResponse = await axios.post(URL + "/api/v1/admin/element", {
-      imageUrl: "https://encryptsibsSZ5oJtbakq&usqp=CAE",
-      width: 1,
-      height: 1,
-      static: true,
-    },{
-      headers:{
-        authorization:"Bearer "+token
-      }
-    });
-    const response = await axios.put(
-      URL + "/api/v1/admin/element/" + elementResponse.data.id,
-      {
-        imageUrl: "https://encryptsibsSZ5oJtbakq&usqp=UPDATED",
-      },
-      {
-        headers: {
-          authorization: "Bearer " + token,
-        },
-      }
-    );
-    expect(response.status).toBe(200);
-    expect(response.data).toBeDefined();
-  });
-  test("Update an element which does not exits", async () => {
-    const response = await axios.put(
-      URL + "/api/v1/admin/element/random",
-      {
-        imageUrl: "https://encryptsibsSZ5oJtbakq&usqp=UPDATED",
-      },
-      {
-        headers: {
-          authorization: "Bearer " + token,
-        },
-      }
-    );
-    expect(response.status).toBe(400);
-  });
-  test("Create an Avatar", async () => {
-    const response = await axios.post(
-      URL + "/api/v1/admin/avatar",
-      {
-        imageUrl:
-          "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQm3RFDZM21teuCMFYx_AROjt-AzUwDBROFww&s",
-        name: "Timmy-"+Math.random(),
-      },
-      {
-        headers: {
-          authorization: "Bearer " + token,
-        },
-      }
-    );
-    expect(response.status).toBe(200);
-    expect(response.data).toBeDefined();
-  });
-  test("Create an Avatar without image", async () => {
-    const response = await axios.post(
-      URL + "/api/v1/admin/avatar",
-      {
-        name: "Timmy-"+Math.random(),
-      },
-      {
-        headers: {
-          authorization: "Bearer " + token,
-        },
-      }
-    );
-    expect(response.status).toBe(400);
-  });
-  test("Create a Map", async () => {
-    const element1Response = await axios.post(
-      URL + "/api/v1/admin/element",
-      {
-        imageUrl: "https://encryptsibsSZ5oJtbakq&usqp=CAE",
-        width: 1,
-        height: 1,
-        static: true,
-      },
-      {
-        headers: {
-          authorization: "Bearer " + token,
-        },
-      }
-    );
-    const element2Response = await axios.post(
-      URL + "/api/v1/admin/element",
-      {
-        imageUrl: "https://encryptsibsSZ5oJtbakq&usqp=CAE",
-        width: 1,
-        height: 1,
-        static: true,
-      },
-      {
-        headers: {
-          authorization: "Bearer " + token,
-        },
-      }
-    );
-    const response = await axios.post(
-      URL + "/api/v1/admin/map",
-      {
-        thumbnail: "https://thumbnail.com/a.png",
-        dimensions: "100x200",
-        defaultElements: [
-          {
-            elementId: element1Response.data.id,
-            x: 20,
-            y: 20,
-          },
-          {
-            elementId: element2Response.data.id,
-            x: 18,
-            y: 20,
-          },
-          {
-            elementId: element2Response.data.id,
-            x: 19,
-            y: 20,
-          },
-          {
-            elementId: element1Response.data.id,
-            x: 19,
-            y: 20,
-          },
-        ],
-      },
-      {
-        headers: {
-          authorization: "Bearer " + token,
-        },
-      }
-    );
-    expect(response.status).toBe(200);
-    expect(response.data).toBeDefined();
-  });
-});
+//     function waitForAndPopLatestMessage(messageArray) {
+//         return new Promise(resolve => {
+//             if (messageArray.length > 0) {
+//                 resolve(messageArray.shift())
+//             } else {
+//                 let interval = setInterval(() => {
+//                     if (messageArray.length > 0) {
+//                         resolve(messageArray.shift())
+//                         clearInterval(interval)
+//                     }
+//                 }, 100)
+//             }
+//         })
+//     }
 
-// describe("Websocket Tests", () => {
-//   let adminToken = "";
-//   let user1Token = "";
-//   let user2Token = "";
-//   let ws1 = "";
-//   let ws2 = "";
-//   let spaceId = "";
-//   const ws1Messages = [];
-//   const ws2Messages = [];
-//   let adminX = "";
-//   let adminY = "";
-//   let userX = "";
-//   let userY = "";
-//   let adminId=""
-//   const setHttp = async () => {
-//     let adminUserName = "admin" + Math.random();
-//     let adminPassword = "12334";
-//     const signUpAdminResponse = await axios.post(URL + "/api/v1/signup", {
-//       username: adminUserName,
-//       password: adminPassword,
-//       type: "admin",
-//     });
-//     adminId = signUpAdminResponse.data.id
-//     const signInAdminResponse = await axios.post(URL + "/api/v1/signin", {
-//       username: adminUserName,
-//       password: adminPassword,
-//     });
-//     adminToken = signInAdminResponse.data.token;
+//     async function setupHTTP() {
+//         const username = `kirat-${Math.random()}`
+//         const password = "123456"
+//         const adminSignupResponse = await axios.post(`${BACKEND_URL}/api/v1/signup`, {
+//             username,
+//             password,
+//             type: "admin"
+//         })
 
-//     const createElement1 = await axios.post(
-//       URL + "/api/v1/admin/element",
-//       {
-//         imageUrl: "https://encryptsibsSZ5oJtbakq&usqp=CAE",
-//         width: 1,
-//         height: 1,
-//         static: true,
-//       },
-//       {
-//         headers: {
-//           authorization: "Bearer " + userToken,
-//         },
-//       }
-//     );
+//         const adminSigninResponse = await axios.post(`${BACKEND_URL}/api/v1/signin`, {
+//             username,
+//             password
+//         })
 
-//     const createElement2 = await axios.post(
-//       URL + "/api/v1/admin/element",
-//       {
-//         imageUrl: "https://encryptsibsSZ5oJtbakq&usqp=CAE",
-//         width: 1,
-//         height: 1,
-//         static: true,
-//       },
-//       {
-//         headers: {
-//           authorization: "Bearer " + userToken,
-//         },
-//       }
-//     );
-//     const map = await axios.post(
-//       URL + "/api/v1/admin/map",
-//       {
-//         thumbnail: "https://thumbnail.com/a.png",
-//         dimensions: "100x200",
-//         defaultElements: [
-//           {
-//             elementId: createElement1.data.id,
-//             x: 20,
-//             y: 20,
-//           },
-//           {
-//             elementId: createElement1.data.id,
-//             x: 18,
-//             y: 20,
-//           },
-//           {
-//             elementId: createElement2.data.id,
-//             x: 19,
-//             y: 20,
-//           },
-//           {
-//             elementId: createElement2.data.id,
-//             x: 19,
-//             y: 20,
-//           },
-//         ],
-//       },
-//       {
-//         headers: {
-//           authorization: "Bearer " + token,
-//         },
-//       }
-//     );
-//     let user1Name = "user1-" + Math.random();
-//     const signUpUser1Response = await axios.post(URL + "/api/v1/signup", {
-//       username: user1Name,
-//       password: "12344",
-//       type: "user",
-//     });
-//     const signInUser1Response = await axios.post(URL + "/api/v1/signin", {
-//       username: user1Name,
-//       password: "12344",
-//     });
-//     let user2Name = "user2-" + Math.random();
-//     const signUpUser2Response = await axios.post(URL + "/api/v1/signup", {
-//       username: user2Name,
-//       password: "12345",
-//       type: "user",
-//     });
-//     const signInUser2Response = await axios.post(URL + "/api/v1/signin", {
-//       username: user2Name,
-//       password: "12345",
-//     });
-//     const createSpace = await axios.post(
-//       URL + "/api/v1/space",
-//       {
-//         name: "Test",
-//         dimensions: "100x200",
-//         mapId: map.data.mapId,
-//       },
-//       {
-//         headers: {
-//           authorization: "Bearer " + signInUser1Response.data.token,
-//         },
-//       }
-//     );
-//     spaceId = createSpace.data.spaceId;
-//   };
-//   const waitForAndPopLatestMessage = (messages = []) => {
-//     return new Promise((resolve) => {
-//       if (messages.length > 0) {
-//         return resolve(messages.shift());
-//       } else {
-//         const interval = setInterval(() => {
-//           if (messages.length > 0) {
-//             clearInterval(interval);
-//             return resolve(messages.shift());
-//           }
-//         }, 500);
-//       }
-//     });
-//   };
-//   const setWs = async () => {
-//     ws1 = new WebSocket(WS_URL);
-//     ws2 = new WebSocket(WS_URL);
-//     await new Promise((resolve) => {
-//       ws1.onopen = resolve;
-//     });
-//     await new Promise((resolve) => {
-//       ws2.onopen = resolve;
-//     });
-//     ws1.onmessage = (event) => {
-//       ws1Messages.push(JSON.parse(event));
-//     };
-//     ws2.onmessage = (event) => {
-//       ws2Messages.push(JSON.parse(event));
-//     };
-//   };
+//         adminUserId = adminSignupResponse.data.userId;
+//         adminToken = adminSigninResponse.data.token;
+//         console.log("adminSignupResponse.status")
+//         console.log(adminSignupResponse.status)
+        
+//         const userSignupResponse = await axios.post(`${BACKEND_URL}/api/v1/signup`, {
+//             username: username + `-user`,
+//             password,
+//             type: "user"
+//         })
+//         const userSigninResponse = await axios.post(`${BACKEND_URL}/api/v1/signin`, {
+//             username: username + `-user`,
+//             password
+//         })
+//         userId = userSignupResponse.data.userId
+//         userToken = userSigninResponse.data.token
+//         console.log("useroktne", userToken)
+//         const element1Response = await axios.post(`${BACKEND_URL}/api/v1/admin/element`, {
+//             "imageUrl": "https://encrypted-tbn0.gstatic.com/shopping?q=tbn:ANd9GcRCRca3wAR4zjPPTzeIY9rSwbbqB6bB2hVkoTXN4eerXOIkJTG1GpZ9ZqSGYafQPToWy_JTcmV5RHXsAsWQC3tKnMlH_CsibsSZ5oJtbakq&usqp=CAE",
+//             "width": 1,
+//             "height": 1,
+//           "static": true
+//         }, {
+//             headers: {
+//                 authorization: `Bearer ${adminToken}`
+//             }
+//         });
 
-//   beforeAll(async () => {
-//     setHttp();
-//     setWs();
-//   });
-//   test("test if the user receives acknowledge after joining the space", async () => {
-//     ws1.send(
-//       JSON.stringify({
-//         event: "join",
-//         payload: {
-//           spaceId,
-//           token: adminToken,
-//         },
-//       })
-//     );
-//     const message1 = await waitForAndPopLatestMessage(ws1Messages);
-//     ws2.send(
-//       JSON.stringify({
-//         event: "join",
-//         payload: {
-//           spaceId,
-//           token: user1Token,
-//         },
-//       })
-//     );
-//     const message2 = await waitForAndPopLatestMessage(ws2Messages)
-//     const message3 = await waitForAndPopLatestMessage(ws1Messages)
+//         const element2Response = await axios.post(`${BACKEND_URL}/api/v1/admin/element`, {
+//             "imageUrl": "https://encrypted-tbn0.gstatic.com/shopping?q=tbn:ANd9GcRCRca3wAR4zjPPTzeIY9rSwbbqB6bB2hVkoTXN4eerXOIkJTG1GpZ9ZqSGYafQPToWy_JTcmV5RHXsAsWQC3tKnMlH_CsibsSZ5oJtbakq&usqp=CAE",
+//             "width": 1,
+//             "height": 1,
+//           "static": true
+//         }, {
+//             headers: {
+//                 authorization: `Bearer ${adminToken}`
+//             }
+//         })
+//         element1Id = element1Response.data.id
+//         element2Id = element2Response.data.id
 
-//     expect(message1.type).toBe("space-joined");
-//     expect(message2.type).toBe("space-joined");
-//     expect(message3.type).toBe("user-join")
+//         const mapResponse = await axios.post(`${BACKEND_URL}/api/v1/admin/map`, {
+//             "thumbnail": "https://thumbnail.com/a.png",
+//             "dimensions": "100x200",
+//             "name": "Defaul space",
+//             "defaultElements": [{
+//                     elementId: element1Id,
+//                     x: 20,
+//                     y: 20
+//                 }, {
+//                   elementId: element1Id,
+//                     x: 18,
+//                     y: 20
+//                 }, {
+//                   elementId: element2Id,
+//                     x: 19,
+//                     y: 20
+//                 }
+//             ]
+//          }, {
+//             headers: {
+//                 authorization: `Bearer ${adminToken}`
+//             }
+//          })
+//          mapId = mapResponse.data.id
 
-//     expect(message1.payload.users.length).toBe(0)
-//     expect(message2.payload.users.length).toBe(1)
+//         const spaceResponse = await axios.post(`${BACKEND_URL}/api/v1/space`, {
+//             "name": "Test",
+//             "dimensions": "100x200",
+//             "mapId": mapId
+//         }, {headers: {
+//             "authorization": `Bearer ${userToken}`
+//         }})
 
-//     expect(message3.payload.userId).toBe(userId)
+//         console.log(spaceResponse.status)
+//         spaceId = spaceResponse.data.spaceId
+//     }
+//     async function setupWs() {
+//         ws1 = new WebSocket(WS_URL)
 
-//     expect(message3.payload.x).toBe(message2.payload.spawn.x)
-//     expect(message3.payload.y).toBe(message2.payload.spawn.y)
-
-//     adminX = message1.payload.spawn.x
-//     adminY = message1.payload.spawn.y
-
-//     userY = message2.payload.spawn.x
-//     userY = message2.payload.spawn.y
-//   });
-//   test("users should not move outside the walls",async()=>{
-//     ws1.send(JSON.stringify({
-//         type:"move",
-//         payload:{
-//             x:9999999,
-//             y:4
+//         ws1.onmessage = (event) => {
+//             console.log("got back adata 1")
+//             console.log(event.data)
+            
+//             ws1Messages.push(JSON.parse(event.data))
 //         }
-//     }))
-//     const message1 = await waitForAndPopLatestMessage(ws1Messages)
-//     expect(message1.type).toBe("movement-reject")
-//     expect(message1.payload.x).toBe(adminX)
-//     expect(message1.payload.y).toBe(adminY)
-//   })
-//   test("users should not move 4 blocks at a time",async()=>{
-//     ws1.send(JSON.stringify({
-//         type:"move",
-//         payload:{
-//             x:adminX+4,
-//             y:adminY
+//         await new Promise(r => {
+//           ws1.onopen = r
+//         })
+
+//         ws2 = new WebSocket(WS_URL)
+
+//         ws2.onmessage = (event) => {
+//             console.log("got back data 2")
+//             console.log(event.data)
+//             ws2Messages.push(JSON.parse(event.data))
 //         }
-//     }))
-//     const message = await waitForAndPopLatestMessage(ws1Messages)
-//     expect(message.type).toBe("movement-rejected")
-//     expect(message.payload.x).toBe(adminX)
-//     expect(message.payload.y).toBe(adminY)
-//   })
-//   test("users moves with proper movement",async()=>{
-//     ws1.send(JSON.stringify({
-//         type:"move",
-//         payload:{
-//             x:adminX+1,
-//             y:adminY
-//         }
-//     }))
-//     const message = await waitForAndPopLatestMessage(ws2Messages)
-//     expect(message.type).toBe("movement")
-//     expect(message.payload.x).toBe(adminX+1)
-//     expect(message.payload.y).toBe(adminY)
-//   })
-//   test("If the user leaves the room",async()=>{
-//     ws1.close()
-//     const message = await waitForAndPopLatestMessage(ws2Messages)
-//     expect(message.type).toBe("user-left")
-//     expect(message.payload.userId).toBe(adminId)
-//   })
-// });
+//         await new Promise(r => {
+//             ws2.onopen = r  
+//         })
+//     }
+    
+//     beforeAll(async () => {
+//         await setupHTTP()
+//         await setupWs()
+//     })
+
+//     test("Get back ack for joining the space", async () => {
+//         console.log("insixce first test")
+//         ws1.send(JSON.stringify({
+//             "type": "join",
+//             "payload": {
+//                 "spaceId": spaceId,
+//                 "token": adminToken
+//             }
+//         }))
+//         console.log("insixce first test1")
+//         const message1 = await waitForAndPopLatestMessage(ws1Messages);
+//         console.log("insixce first test2")
+//         ws2.send(JSON.stringify({
+//             "type": "join",
+//             "payload": {
+//                 "spaceId": spaceId,
+//                 "token": userToken
+//             }
+//         }))
+//         console.log("insixce first test3")
+
+//         const message2 = await waitForAndPopLatestMessage(ws2Messages);
+//         const message3 = await waitForAndPopLatestMessage(ws1Messages);
+
+//         expect(message1.type).toBe("space-joined")
+//         expect(message2.type).toBe("space-joined")
+//         expect(message1.payload.users.length).toBe(0)
+//         expect(message2.payload.users.length).toBe(1)
+//         expect(message3.type).toBe("user-joined");
+//         expect(message3.payload.x).toBe(message2.payload.spawn.x);
+//         expect(message3.payload.y).toBe(message2.payload.spawn.y);
+//         expect(message3.payload.userId).toBe(userId);
+
+//         adminX = message1.payload.spawn.x
+//         adminY = message1.payload.spawn.y
+
+//         userX = message2.payload.spawn.x
+//         userY = message2.payload.spawn.y
+//     })
+
+//     test("User should not be able to move across the boundary of the wall", async () => {
+//         ws1.send(JSON.stringify({
+//             type: "move",
+//             payload: {
+//                 x: 1000000,
+//                 y: 10000
+//             }
+//         }));
+
+//         const message = await waitForAndPopLatestMessage(ws1Messages);
+//         expect(message.type).toBe("movement-rejected")
+//         expect(message.payload.x).toBe(adminX)
+//         expect(message.payload.y).toBe(adminY)
+//     })
+
+//     test("User should not be able to move two blocks at the same time", async () => {
+//         ws1.send(JSON.stringify({
+//             type: "move",
+//             payload: {
+//                 x: adminX + 2,
+//                 y: adminY
+//             }
+//         }));
+
+//         const message = await waitForAndPopLatestMessage(ws1Messages);
+//         expect(message.type).toBe("movement-rejected")
+//         expect(message.payload.x).toBe(adminX)
+//         expect(message.payload.y).toBe(adminY)
+//     })
+
+//     test("Correct movement should be broadcasted to the other sockets in the room",async () => {
+//         ws1.send(JSON.stringify({
+//             type: "move",
+//             payload: {
+//                 x: adminX + 1,
+//                 y: adminY,
+//                 userId: adminId
+//             }
+//         }));
+
+//         const message = await waitForAndPopLatestMessage(ws2Messages);
+//         expect(message.type).toBe("movement")
+//         expect(message.payload.x).toBe(adminX + 1)
+//         expect(message.payload.y).toBe(adminY)
+//     })
+
+//     test("If a user leaves, the other user receives a leave event", async () => {
+//         ws1.close()
+//         const message = await waitForAndPopLatestMessage(ws2Messages);
+//         expect(message.type).toBe("user-left")
+//         expect(message.payload.userId).toBe(adminUserId)
+//     })
+// })

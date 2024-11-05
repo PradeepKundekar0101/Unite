@@ -15,6 +15,17 @@ export const updateMetaData =async(req:AuthenticatedRequest,res:Response)=>{
     }
     try {
         const userId = req.userId
+        const avatar = await client.avatar.findUnique({
+            where:{
+                id:parsedData.data.avatarId
+            }
+        })
+        if(!avatar){
+            res.status(400).json({
+                messgae:"Avatar not found"
+            })
+            return
+        }
         await client.user.update({
             where:{
                 id:userId
@@ -30,33 +41,26 @@ export const updateMetaData =async(req:AuthenticatedRequest,res:Response)=>{
 }  
 
 export const getBulkMetaData = async (req: Request, res: Response) => {
-    try {
-        // Parse `ids` from query string, ensuring it's an array
-        const ids = typeof req.query.ids === 'string' 
-            ? JSON.parse(req.query.ids)  
-            : req.query.ids;             
-
-        if (!Array.isArray(ids)) {
-            res.status(400).send({ message: "Invalid format for ids. Expected an array." });
-            return;
+    const userIdString = (req.query.ids ?? "[]") as string;
+    const userIds = (userIdString).slice(1, userIdString?.length - 1).split(",");
+    console.log(userIds)
+    const metadata = await client.user.findMany({
+        where: {
+            id: {
+                in: userIds
+            }
+        }, select: {
+            avatar: true,
+            id: true
         }
+    })
 
-        // Use `Promise.all` to handle multiple asynchronous calls
-        const data = await Promise.all(
-            ids.map(async (id) => {
-                const response = await client.avatar.findFirst({ where: { id } });
-                if (!response) {
-                    // Instead of stopping execution, handle missing IDs gracefully
-                    return { userId: id, error: `User with ID ${id} not found` };
-                }
-                return { userId: id, imageUrl: response.imageUrl };
-            })
-        );
-
-        res.status(200).send({ avatars: data });
-        
-    } catch (error) {
-        console.error("Error processing IDs:", error);
-        res.status(500).send({ message: "Server error while processing IDs", error });
-    }
+    res.json({
+        avatars: metadata.map(m => ({
+            userId: m.id,
+            avatarId: m.avatar?.imageUrl
+        }))
+    })
 };
+
+

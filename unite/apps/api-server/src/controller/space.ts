@@ -6,18 +6,19 @@ import { AuthenticatedRequest } from "../middleware/Authuser";
 export const createSpace = async (req: AuthenticatedRequest, res: Response) => {
   const parsedData = CreateSpaceSchema.safeParse(req.body);
   if (!parsedData.success) {
-
     res.status(400).json({
       message: "Invalid data",
     });
     return;
   }
   try {
+ 
     if (!parsedData.data.mapId) {
         if(!parsedData.data.dimensions){
             res.status(400).json({message:"Invalid input"})
             return
         }
+        
         const height = Number(parsedData.data.dimensions.split("x")[0]);
         const width = Number(parsedData.data.dimensions.split("x")[1]);
         const newSpace = await client.space.create({
@@ -46,10 +47,11 @@ export const createSpace = async (req: AuthenticatedRequest, res: Response) => {
       },
     });
     if (!existingMap) {
-      res.status(400).json({ message: "Map does not exist" });
-      return;
+        res.status(400).json({ message: "Map does not exist" });
+        return;
     }
-
+    
+    
     const newSpace = await client.space.create({
       data: {
         spaceElements: {
@@ -143,10 +145,11 @@ export const getSpaceById = async(req: Request, res: Response) => {
             where:{spaceId},
             include:{element:true}
         })
+
         res.status(200).json({
-            "dimensions":`${space.width}x${space.height}`,
+            "dimensions":`${space.height}x${space.width}`,
             "elements": spaceElements.map((e)=>{return {
-                id:e.elementId,
+                id:e.id,
                 element:{
                     id:e.element.id,
                     imageUrl: e.element.imageUrl,
@@ -154,6 +157,7 @@ export const getSpaceById = async(req: Request, res: Response) => {
                     height:e.element.height,
                     width:e.element.width
                 }
+
             }})
         })
     } catch (error) {
@@ -172,6 +176,10 @@ export const addElementToSpace =async (req: Request, res: Response) => {
     try {
         const space = await client.space.findFirst({where:{id:parsedData.data?.spaceId}})
         if(!space){
+            res.status(400).json({message:"Space not found"})
+            return
+        }
+        if((parsedData.data.x>space.width!) || (parsedData.data.y>space.height!)){
             res.status(400).json({message:"Space not found"})
             return
         }
@@ -197,21 +205,16 @@ export const removeElementFromSpace = async(req: Request, res: Response) => {
         res.status(400).json({message:"Invalid data"})
         return
     }
-    console.log(parsedData.data.elementId)
     try {
-        const space = await client.space.findUnique({where:{id:parsedData.data.spaceId}})
-        if(!space){
+        const spaceElement = await client.spaceElements.findUnique({where:{id:parsedData.data.id}})
+        if(!spaceElement){
             res.status(400).json({message:"Space not found"})
             return
         }
-        const element = await client.spaceElements.findFirst({where:{id:parsedData.data?.elementId}})
-        if(!element){
-            res.status(400).json({message:"Element not found"})
-            return
-        }
+       
         await client.spaceElements.delete({
             where:{
-                id: parsedData.data?.elementId
+                id: parsedData.data?.id
             }
         })
         res.status(200).json({

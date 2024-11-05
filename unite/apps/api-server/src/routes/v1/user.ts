@@ -5,6 +5,6 @@ const router = express.Router()
 
 router.get("/metadata",authUser,getMetaData)
 router.post("/metadata",authUser,updateMetaData)
-router.get("/metadata/bulk",authUser,getBulkMetaData)
+router.get("/metadata/bulk",getBulkMetaData)
 
 export default router;

@@ -54,8 +54,8 @@ export const updateElement = async (req:Request,res:Response)=>{
 }
 export const createAvatar = async(req:Request,res:Response)=>{
     const parsedData = createAvatarSchema.safeParse(req.body)
+    console.log(parsedData)
     if(!parsedData.success){
-        console.log("first")
         res.status(400).json({message:"Invalid input"})
         return
     }
@@ -65,10 +65,10 @@ export const createAvatar = async(req:Request,res:Response)=>{
                 name:parsedData.data.name
             }
         })
-        if(avatar){
-            res.status(400).json({message:"Avatar name already exits"})
-            return
-        }
+        // if(avatar){
+        //     res.status(400).json({message:"Avatar name already exits"})
+        //     return
+        // }
         const createAvatar = await client.avatar.create({
             data:{
                 imageUrl:parsedData.data.imageUrl,
@@ -84,31 +84,45 @@ export const createAvatar = async(req:Request,res:Response)=>{
 }
 export const createMap = async(req:Request,res:Response)=>{
     const parsedData = createMapSchema.safeParse(req.body)
-
+    console.log(parsedData.data)    
     if(!parsedData.success){
-        console.log(parsedData.data)
         res.status(400).json({message:"invalid data"})
         return 
     }
     try {
-        const map = await client.map.create({
-            data:{
-                name:parsedData.data.name,
-                elements:{
-                    create:
-                    parsedData.data.defaultElements.map((e)=>{
-                    return {
-                        x:e.x!,
-                        y:e.y!,
-                        elementId:e.elementId!
-                    }
-                })},
-                height:Number(parsedData.data.dimensions.split("x")[0]),
-                width:Number(parsedData.data.dimensions.split("x")[1]),
+
+        console.log("Elements to create:", parsedData.data.defaultElements)
+        
+        const elementsData = parsedData.data.defaultElements.map((e)=>{
+            console.log("Processing element:", e)
+            return {
+                x: e.x!,
+                y: e.y!,
+                elementId: e.elementId!
             }
         })
-        res.status(200).json({mapId:map.id})
+
+        console.log("Formatted elements data:", elementsData)
+
+        const map = await client.map.create({
+            data:{
+                name: parsedData.data.name,
+                elements: {
+                    create: elementsData
+                },
+                height: Number(parsedData.data.dimensions.split("x")[0]),
+                width: Number(parsedData.data.dimensions.split("x")[1]),
+            },
+            // Add include to see the created elements in the response
+            include: {
+                elements: true
+            }
+        })
+        
+        console.log("Created map with elements:", map)
+        res.status(200).json({id: map.id})
     } catch (error) {
-        res.status(500).json({message:"Error"})
+        console.error("Error creating map:", error)
+        res.status(500).json({message: "Error"})
     }
 }

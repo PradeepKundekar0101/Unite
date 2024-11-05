@@ -17,6 +17,13 @@ export const createAccount = async (req:Request,res:Response)=>{
     }
     try {
         const hashedPassword = await hash(parsedData.data.password)
+        const existingUser = await client.user.findUnique({
+            where:{username:parsedData.data.username}
+        })
+        if(existingUser){
+            res.status(400).json({message:"User already exists"})
+            return
+        }
         const createUser = await client.user.create({data:{
             username:parsedData.data.username,
             password:hashedPassword,

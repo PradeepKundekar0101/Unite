@@ -53,6 +53,5 @@ export const createMapSchema = z.object({
 })
 
 export const RemoveSpaceElementSchema = z.object({
-    spaceId:z.string(),
-    elementId:z.string()
+   id:z.string()
 })
