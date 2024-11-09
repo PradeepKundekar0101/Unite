@@ -1,3 +1,4 @@
+#STAGE 1
 FROM node:18-alpine AS builder
 RUN apk add --no-cache libc6-compat python3 make g++
 RUN npm install -g turbo
@@ -13,6 +14,9 @@ COPY apps/websocket-server/tsconfig.json ./apps/websocket-server/
 RUN npm install
 RUN cd packages/db && npx prisma generate
 RUN turbo run build --filter=websocket-server...
+
+# STAGE 2
+#=====================================================================================
 FROM node:18-alpine AS runner
 WORKDIR /app
 COPY --from=builder /app/package*.json ./
