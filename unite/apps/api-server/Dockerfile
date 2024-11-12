@@ -26,6 +26,7 @@ COPY --from=builder /app/apps/api-server/package.json ./apps/api-server/
 COPY --from=builder /app/packages/db/package.json ./packages/db/
 COPY --from=builder /app/apps/api-server/dist ./apps/api-server/dist
 COPY --from=builder /app/packages/db/src ./packages/db/src
+COPY --from=builder /app/packages/db/prisma ./packages/db/prisma
 COPY --from=builder /app/node_modules ./node_modules
 
 ENV NODE_ENV=production
@@ -33,4 +34,7 @@ ENV PORT=8000
 EXPOSE 8000
 
 WORKDIR /app/apps/api-server
-CMD ["node", "dist/index.js"]
+
+COPY start.sh ./
+RUN chmod +x start.sh
+CMD ["./start.sh"]
