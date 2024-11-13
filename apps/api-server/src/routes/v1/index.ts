@@ -7,7 +7,9 @@ import { getAllAvatars } from "../../controller/avatar"
 import { getAllElements } from "../../controller/element"
 
 const router = express.Router()
-
+router.get("/health",(req,res)=>{
+    res.send("Server is running")
+})
 router.post("/signup",createAccount)
 router.post("/signin",signIn)
 router.get("/avatars",getAllAvatars)
