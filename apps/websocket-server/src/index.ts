@@ -11,7 +11,7 @@ const wss = new WebSocketServer({
 
 wss.on('connection', function connection(ws, req) {
   try {
-    console.log('New connection from:', req.socket.remoteAddress);
+    console.log('New connection added from:', req.socket.remoteAddress);
     let user = new User(ws);
     user.initHandlers();
   } catch (error) {

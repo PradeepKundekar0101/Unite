@@ -1,7 +1,7 @@
 const axios2 = require("axios");
 
-const BACKEND_URL = "http://localhost:8000"
-const WS_URL = "ws://localhost:8001"
+// const BACKEND_URL = "http://localhost:8000"
+const WS_URL = "ws://k8s-prod-uniteing-ac25a358ff-1452303126.ap-south-1.elb.amazonaws.com/ws-connect"
 const WebSocket = require("ws")
 const axios = {
     post: async (...args) => {
