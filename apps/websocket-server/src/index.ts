@@ -15,13 +15,19 @@ wss.on('connection', function connection(ws, req) {
     let user = new User(ws);
     user.initHandlers();
   } catch (error) {
-    console.log("Failed to initialize user:", error);
-    ws.close();
+    console.error("Failed to initialize user:", error);
+    if (ws.readyState === ws.OPEN) {
+      ws.close(1002, 'Failed to initialize user');
+    }
   }
 });
 
-wss.on("error", (err) => {
+wss.on("error", (err:any) => {
   console.error("WebSocket server error:", err);
+  
+  if (err.code === 'WS_ERR_UNEXPECTED_RSV_1') {
+    console.error('Received WebSocket frame with unexpected RSV1 bit set');
+  }
 });
 
 
