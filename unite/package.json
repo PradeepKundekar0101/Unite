@@ -12,8 +12,8 @@
 
     "db:generate":"cd packages/db && npx prisma generate",
     "db:migrate":"cd /app/packages/db && npx prisma migrate deploy",
-    
-    "start:api-server":"cd /app/apps/api-server && node dist/index.js"
+
+    "start:api-server":"cd ./apps/api-server && node dist/index.js"
   },
   "devDependencies": {
     "prettier": "^3.2.5",
