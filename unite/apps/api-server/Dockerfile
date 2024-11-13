@@ -35,6 +35,4 @@ EXPOSE 8000
 
 WORKDIR /app/apps/api-server
 
-COPY start.sh ./
-RUN chmod +x start.sh
-CMD ["./start.sh"]
+CMD ["node", "dist/index.js"]

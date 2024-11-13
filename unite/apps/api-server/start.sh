@@ -1,6 +1,5 @@
 #!/bin/sh
 
-
 cd /app/packages/db
 
 npx prisma migrate deploy

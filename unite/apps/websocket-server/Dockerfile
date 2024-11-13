@@ -12,7 +12,7 @@ COPY apps/websocket-server/package.json ./apps/websocket-server/
 COPY apps/websocket-server/src ./apps/websocket-server/src
 COPY apps/websocket-server/tsconfig.json ./apps/websocket-server/
 RUN npm install
-RUN cd packages/db && npx prisma generate
+# RUN cd packages/db && npx prisma generate
 RUN turbo run build --filter=websocket-server...
 
 # STAGE 2
