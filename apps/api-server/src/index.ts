@@ -4,7 +4,7 @@ import dotenv from 'dotenv'
 import v1Router from './routes/v1'
 
 dotenv.config()
-const app = express()
+export const app = express()
 app.use(cors({
     origin:"*"
 }))

@@ -6,14 +6,13 @@
     "dev": "turbo dev",
     "lint": "turbo lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-
     "test:api-server": "npx jest tests/api-server.test.js",
     "test:ws-server": "npx jest tests/ws-server.test.js",
-
-    "db:generate":"cd packages/db && npx prisma generate",
-    "db:migrate":"cd /app/packages/db && npx prisma migrate deploy",
-
-    "start:api-server":"cd ./apps/api-server && node dist/index.js"
+    "db:generate": "cd packages/db && npx prisma generate",
+    "db:migrate": "cd /app/packages/db && npx prisma migrate deploy",
+    
+    "start:api-server": "cd ./apps/api-server && node dist/index.js",
+    "start:ws-server": "cd ./apps/websocket-server && node dist/index.js"
   },
   "devDependencies": {
     "prettier": "^3.2.5",
@@ -29,6 +28,7 @@
     "packages/*"
   ],
   "dependencies": {
+    "axios": "^1.7.7",
     "websocket-server": "^1.0.0",
     "ws": "^8.18.0"
   }
