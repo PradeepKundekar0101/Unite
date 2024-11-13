@@ -12,5 +12,5 @@ app.use(express.json())
 app.use("/api/v1",v1Router)
 const PORT = process.env.PORT || 8000
 app.listen(PORT,()=>{
-    console.log("API SERVER Running at PORT: "+PORT)
+    console.log("UNITE API SERVER Running at PORT : "+PORT)
 })
