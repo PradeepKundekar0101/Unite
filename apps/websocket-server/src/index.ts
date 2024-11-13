@@ -34,7 +34,7 @@ server.on('error', (err) => {
   console.error('HTTP server error:', err);
 });
 
-// Optional: Basic health check endpoint
+
 server.on('request', (req, res) => {
   if (req.url === '/health') {
     res.writeHead(200);
