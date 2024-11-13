@@ -1,7 +1,7 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # Dependencies
-node_modules
+node_modules/**
 .pnp
 .pnp.js
 
@@ -36,3 +36,8 @@ yarn-error.log*
 # Misc
 .DS_Store
 *.pem
+apps/api-server/dist/*
+apps/api-server/node_modules/*
+apps/websocket-server/dist/*
+apps/websocket-server/node_modules/*
+node_modules
