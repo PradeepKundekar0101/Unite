@@ -8,7 +8,7 @@ import { getAllElements } from "../../controller/element"
 
 const router = express.Router()
 router.get("/health",(req,res)=>{
-    res.send("Server is running")
+    res.send("API Server is running")
 })
 router.post("/signup",createAccount)
 router.post("/signin",signIn)
