@@ -2,7 +2,7 @@ import express from "express"
 import cors from 'cors'
 import dotenv from 'dotenv'
 import v1Router from './routes/v1'
-import client from "@repo/db/client"
+
 dotenv.config()
 const app = express()
 app.use(cors({

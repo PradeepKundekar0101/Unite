@@ -31,6 +31,7 @@ export const createAccount = async (req:Request,res:Response)=>{
         }})
         res.status(200).json({userId:createUser.id})
     } catch (error) {
+        console.log(error)
         res.status(400).json({message:"User name already taken"})
     }
 }

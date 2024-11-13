@@ -1,0 +1,13 @@
+**/.git
+**/.gitignore
+**/.env
+**/.env.*
+**/node_modules
+**/dist
+**/build
+**/.next
+**/.turbo
+**/coverage
+**/.vscode
+**/README.md
+**/.DS_Store
