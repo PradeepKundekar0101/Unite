@@ -31,7 +31,7 @@ jobs:
       run: |
         echo "Cloning infrastructure repository..."
         git clone https://x-access-token:${INFRA_REPO_TOKEN}@github.com/pradeepkundekar0101/meta-ops.git
-        cd unite-ops
+        cd meta-ops
         
         echo "Updating image tag..."
         cd api-server
