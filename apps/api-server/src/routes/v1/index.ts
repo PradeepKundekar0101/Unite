@@ -14,7 +14,6 @@ router.post("/signup",createAccount)
 router.post("/signin",signIn)
 router.get("/avatars",getAllAvatars)
 router.get("/elements",getAllElements)
-
 router.use("/user",userRouter)
 router.use("/space",spaceRouter)
 router.use("/admin",adminRouter)
