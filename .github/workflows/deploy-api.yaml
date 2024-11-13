@@ -28,20 +28,24 @@ jobs:
         tags: pradeepkundekar0101/unite-api:${{ github.sha }}
 
     - name: Update Kubernetes manifests
+      env:
+        INFRA_REPO_TOKEN: ${{ secrets.INFRA_REPO_TOKEN }}
+        GITHUB_SHA: ${{ github.sha }}
       run: |
         echo "Cloning infrastructure repository..."
         git clone https://x-access-token:${INFRA_REPO_TOKEN}@github.com/pradeepkundekar0101/meta-ops.git
         cd meta-ops
+
+        ls -l        
+
+        DEPLOYMENT_FILE_PATH="api-server.yaml"
         
         echo "Updating image tag..."
-        cd api-server
-        sed -i "s|image: pradeepkundekar0101/unite-api:.*|image: pradeepkundekar0101/unite-api:${GITHUB_SHA}|" deployment.yaml
+        sed -i "s|image: pradeepkundekar0101/unite-api:.*|image: pradeepkundekar0101/unite-api:$GITHUB_SHA|" $DEPLOYMENT_FILE_PATH
         
         echo "Committing and pushing changes..."
         git config --global user.name 'GitHub Actions'
         git config --global user.email 'actions@github.com'
         git add .
-        git commit -m "Update unite-api image to ${GITHUB_SHA}"
+        git commit -m "Update unite-api image to $GITHUB_SHA"
         git push
-      env:
-        INFRA_REPO_TOKEN: ${{ secrets.INFRA_REPO_TOKEN }}
